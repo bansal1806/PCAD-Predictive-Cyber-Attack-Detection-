@@ -1,0 +1,22 @@
+{
+  "LogisticRegression": {
+    "ROC_AUC": 0.9829,
+    "F1_Score": 0.9729
+  },
+  "KNN": {
+    "ROC_AUC": 0.9812,
+    "F1_Score": 0.9251
+  },
+  "RandomForest": {
+    "ROC_AUC": 0.9906,
+    "F1_Score": 0.9556
+  },
+  "XGBoost": {
+    "ROC_AUC": 0.9869,
+    "F1_Score": 0.8753
+  },
+  "Ensemble": {
+    "ROC_AUC": 0.9886,
+    "F1_Score": 0.966
+  }
+}
