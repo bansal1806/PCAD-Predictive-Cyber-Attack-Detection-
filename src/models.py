@@ -2,11 +2,13 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, TimeSeriesSplit, RandomizedSearchCV
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, RidgeClassifier
+from sklearn.svm import LinearSVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier, StackingClassifier
 from sklearn.metrics import classification_report, roc_auc_score, f1_score, confusion_matrix, accuracy_score
 from sklearn.preprocessing import StandardScaler
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.pipeline import Pipeline
 import xgboost as xgb
 import pickle
@@ -24,7 +26,9 @@ class ModelTrainer:
     def _initialize_models(self):
         """Initializes base models with default parameters."""
         models = {
+            'LinearModel': RidgeClassifier(random_state=42),
             'LogisticRegression': LogisticRegression(max_iter=2000, random_state=42),
+            'SVM': LinearSVC(max_iter=5000, random_state=42, dual=False),
             'KNN': KNeighborsClassifier(n_neighbors=5, n_jobs=-1),
             'RandomForest': RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1),
             'XGBoost': xgb.XGBClassifier(eval_metric='logloss', random_state=42, n_jobs=-1)
@@ -48,7 +52,7 @@ class ModelTrainer:
         print(f"Train size: {X_train.shape}, Test size: {X_test.shape}")
         return X_train, y_train, X_test, y_test
 
-    def train_models(self, X_train, y_train, X_test, y_test):
+    def train_models(self, X_train, y_train, X_test, y_test, selected_model=None):
         results = {}
         
         # Preprocessing Pipeline (Scaling is important for LR and Neural Nets)
@@ -59,11 +63,25 @@ class ModelTrainer:
         # Save scaler
         joblib.dump(scaler, os.path.join(self.output_dir, 'scaler.joblib'))
 
-        for name, model in self.models.items():
+        # Determine which models to train
+        models_to_train = {}
+        if selected_model:
+            if selected_model in self.models:
+                models_to_train[selected_model] = self.models[selected_model]
+            elif selected_model.lower() == 'ensemble':
+                # Special handling for ensemble below
+                pass
+            else:
+                print(f"Error: Model '{selected_model}' not found in initialization.")
+                return {}
+        else:
+            models_to_train = self.models
+
+        for name, model in models_to_train.items():
             print(f"Training {name}...")
             
-            # Use scaled data for LR and distance-based models (KNN, SVM), original for Trees
-            scaled_models = ['LogisticRegression', 'KNN', 'SVM', 'Linear']
+            # Use scaled data for LR and distance-based models (KNN, SVM, Linear), original for Trees
+            scaled_models = ['LogisticRegression', 'KNN', 'SVM', 'LinearModel']
             X_curr_train = X_train_scaled if name in scaled_models else X_train
             X_curr_test = X_test_scaled if name in scaled_models else X_test
 
@@ -88,32 +106,33 @@ class ModelTrainer:
             with open(os.path.join(self.output_dir, f"{name}.pkl"), 'wb') as f:
                 pickle.dump(model, f)
         
-        # Train Ensemble
-        print("Training Ensemble (Soft Voting)...")
-        
-        # Use Pipelines inside VotingClassifier to properly scale data for LR
-        pipe_lr = Pipeline([('sc', StandardScaler()), ('clf', LogisticRegression(max_iter=2000, random_state=42))])
-        pipe_rf = Pipeline([('clf', RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1))])
-        pipe_xgb = Pipeline([('clf', xgb.XGBClassifier(eval_metric='logloss', random_state=42, n_jobs=-1))])
-        
-        ensemble_refined = VotingClassifier(
-            estimators=[('lr', pipe_lr), ('rf', pipe_rf), ('xgb', pipe_xgb)],
-            voting='soft'
-        )
-        ensemble_refined.fit(X_train, y_train)
-        
-        y_pred_ens = ensemble_refined.predict(X_test)
-        y_prob_ens = ensemble_refined.predict_proba(X_test)[:, 1]
-        
-        results['Ensemble'] = {
-            'ROC_AUC': roc_auc_score(y_test, y_prob_ens),
-            'F1_Score': f1_score(y_test, y_pred_ens),
-            'Model': ensemble_refined
-        }
-        print(f"Ensemble Results -> ROC: {results['Ensemble']['ROC_AUC']:.4f}")
-        
-        with open(os.path.join(self.output_dir, "Ensemble.pkl"), 'wb') as f:
-            pickle.dump(ensemble_refined, f)
+        # Train Ensemble if requested or if no specific model selected
+        if not selected_model or selected_model.lower() == 'ensemble':
+            print("Training Ensemble (Soft Voting)...")
+            
+            pipe_lr = Pipeline([('sc', StandardScaler()), ('clf', LogisticRegression(max_iter=2000, random_state=42))])
+            pipe_svm = Pipeline([('sc', StandardScaler()), ('clf', CalibratedClassifierCV(LinearSVC(max_iter=5000, random_state=42, dual=False)))])
+            pipe_rf = Pipeline([('clf', RandomForestClassifier(n_estimators=100, random_state=42, n_jobs=-1))])
+            pipe_xgb = Pipeline([('clf', xgb.XGBClassifier(eval_metric='logloss', random_state=42, n_jobs=-1))])
+            
+            ensemble_refined = VotingClassifier(
+                estimators=[('lr', pipe_lr), ('svm', pipe_svm), ('rf', pipe_rf), ('xgb', pipe_xgb)],
+                voting='soft'
+            )
+            ensemble_refined.fit(X_train, y_train)
+            
+            y_pred_ens = ensemble_refined.predict(X_test)
+            y_prob_ens = ensemble_refined.predict_proba(X_test)[:, 1]
+            
+            results['Ensemble'] = {
+                'ROC_AUC': roc_auc_score(y_test, y_prob_ens),
+                'F1_Score': f1_score(y_test, y_pred_ens),
+                'Model': ensemble_refined
+            }
+            print(f"Ensemble Results -> ROC: {results['Ensemble']['ROC_AUC']:.4f}")
+            
+            with open(os.path.join(self.output_dir, "Ensemble.pkl"), 'wb') as f:
+                pickle.dump(ensemble_refined, f)
 
         return results
 

@@ -222,6 +222,20 @@ def get_model_comparison():
             return json.load(f)
     return {}
 
+@app.get("/distribution")
+def get_distribution():
+    """Returns the class distribution (Normal vs Attack) for the pie chart."""
+    if live_data is not None and 'target' in live_data.columns:
+        counts = live_data['target'].value_counts().to_dict()
+        return [
+            {"name": "Normal Traffic", "value": int(counts.get(0, 0))},
+            {"name": "Cyber Attacks", "value": int(counts.get(1, 0))}
+        ]
+    # Default mock if data not loaded
+    return [
+        {"name": "Normal Traffic", "value": 13139},
+        {"name": "Cyber Attacks", "value": 52089}
+    ]
 
 @app.post("/simulate-attack")
 async def simulate_attack(api_key: str = Depends(get_api_key)):

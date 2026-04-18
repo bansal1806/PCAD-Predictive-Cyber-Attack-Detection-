@@ -1,0 +1,34 @@
+# Ignore raw data files (the 2.5 GB dataset)
+data/raw/
+data/raw/*
+archive.zip
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS generated files
+.DS_Store
+.DS_Store?
+ehthumbs.db
+Icon?
+Thumbs.db
+
+# Virtual Environment
+venv/
+env/
+.env
+
+# Models and Metrics
+# (Keep current ones as examples for the project)
+#!models/*.pkl
+#!models/metrics.json
+#!models/scaler.joblib
+
+# VS Code settings
+.vscode/
+
+# Logs
+logs/
+*.log

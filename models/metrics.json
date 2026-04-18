@@ -1,6 +1,14 @@
 {
+  "LinearModel": {
+    "ROC_AUC": 0.9837,
+    "F1_Score": 0.9729
+  },
   "LogisticRegression": {
     "ROC_AUC": 0.9829,
+    "F1_Score": 0.9729
+  },
+  "SVM": {
+    "ROC_AUC": 0.9837,
     "F1_Score": 0.9729
   },
   "KNN": {
@@ -16,7 +24,7 @@
     "F1_Score": 0.8753
   },
   "Ensemble": {
-    "ROC_AUC": 0.9886,
-    "F1_Score": 0.966
+    "ROC_AUC": 0.9883,
+    "F1_Score": 0.972
   }
 }

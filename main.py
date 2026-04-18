@@ -1,7 +1,12 @@
 import os
+import sys
 import json
 import argparse
 import pandas as pd
+
+# Ensure the project root is in the path for consistent imports
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from src.preprocessing import DataCleaner
 from src.feature_engineering import TimeWindowAggregator
 from src.models import ModelTrainer
@@ -9,9 +14,16 @@ import src.config as config
 
 def main():
     parser = argparse.ArgumentParser(description="Predictive Cyber Attack Detection Pipeline")
-    parser.add_argument('--mode', type=str, default='train', choices=['preprocess', 'train'], help='Execution mode')
+    parser.add_argument('--mode', type=str, default='train', choices=['preprocess', 'train', 'serve'], help='Execution mode')
     parser.add_argument('--lstm', action='store_true', help='Also train LSTM model (requires TensorFlow)')
+    parser.add_argument('--model', type=str, default=None, help='Specific model to train (e.g. RandomForest, XGBoost, Ensemble)')
     args = parser.parse_args()
+    
+    if args.mode == 'serve':
+        import uvicorn
+        print("Starting FastAPI Backend Server...")
+        uvicorn.run("src.api:app", host="0.0.0.0", port=8000, reload=True)
+        return
 
     # Ensure processed directory exists
     os.makedirs(config.PROCESSED_DATA_DIR, exist_ok=True)
@@ -61,21 +73,26 @@ def main():
         # 2. Split
         X_train, y_train, X_test, y_test = trainer.train_test_split_time(df)
 
-        # 3. Train baseline models (LR, RF, XGBoost, Ensemble)
-        results = trainer.train_models(X_train, y_train, X_test, y_test)
+        # 3. Train models
+        results = trainer.train_models(X_train, y_train, X_test, y_test, selected_model=args.model)
 
-        # 4. Save all metrics to metrics.json (required for Mid-Term demo)
-        metrics_out = {}
+        # 4. Update metrics.json
+        metrics_path = os.path.join(trainer.output_dir, 'metrics.json')
+        if os.path.exists(metrics_path):
+            with open(metrics_path, 'r') as f:
+                metrics_out = json.load(f)
+        else:
+            metrics_out = {}
+
         for name, res in results.items():
             metrics_out[name] = {
                 'ROC_AUC': round(res['ROC_AUC'], 4),
                 'F1_Score': round(res['F1_Score'], 4),
             }
         
-        metrics_path = os.path.join(trainer.output_dir, 'metrics.json')
         with open(metrics_path, 'w') as f:
             json.dump(metrics_out, f, indent=2)
-        print(f"\nMetrics saved to {metrics_path}")
+        print(f"\nMetrics updated in {metrics_path}")
 
         # 5. XAI: SHAP Explainability (bonus points)
         if 'XGBoost' in results:

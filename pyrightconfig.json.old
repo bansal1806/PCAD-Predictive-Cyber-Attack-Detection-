@@ -1,0 +1,34 @@
+{
+  "pythonVersion": "3.13",
+  "pythonPlatform": "Windows",
+  "pythonPath": "C:/Users/Admin/AppData/Local/Programs/Python/Python313/python.exe",
+  "extraPaths": [
+    ".",
+    "C:/Users/Admin/AppData/Local/Programs/Python/Python313/Lib/site-packages",
+    "C:/Users/Admin/AppData/Local/Programs/Python/Python313/Lib"
+  ],
+  "include": [
+    "."
+  ],
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": [
+        "."
+      ]
+    }
+  ],
+  "exclude": [
+    "web/node_modules",
+    "data"
+  ],
+  "typeCheckingMode": "basic",
+  "diagnosticSeverityOverrides": {
+    "reportMissingImports": "none",
+    "reportMissingModuleSource": "none",
+    "reportUnknownMemberType": "none",
+    "reportUnknownVariableType": "none",
+    "reportUnknownParameterType": "none",
+    "reportUnknownArgumentType": "none"
+  }
+}

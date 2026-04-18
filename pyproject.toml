@@ -1,0 +1,21 @@
+[project]
+name = "pcad"
+version = "0.1.0"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "xgboost",
+    "pydantic"
+]
+
+[tool.pyright]
+include = ["."]
+extraPaths = ["."]
+typeCheckingMode = "basic"
+reportMissingImports = true
+executionEnvironments = [
+  { root = "." }
+]

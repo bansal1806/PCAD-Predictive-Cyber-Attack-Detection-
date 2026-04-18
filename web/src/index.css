@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+  --color-void: #0A0A0E;
+  --color-void-light: #16161D;
+  --color-cyan: #00FFFF;
+  --color-neon-green: #39FF14;
+  --color-crimson: #FF003C;
+  --color-cyber-blue: #0F172A;
+  --font-inter: "Inter", sans-serif;
+}
+
+body {
+  background-color: var(--color-void);
+  color: white;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar for terminals */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-void); 
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-void-light); 
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-cyan); 
+}
